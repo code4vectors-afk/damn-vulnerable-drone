@@ -6,7 +6,6 @@ breadcrumb:
     link: /attacks
   - text: Reconnaissance
   - text: ROS 2 DDS Graph Enumeration
-
 sections:
   - title: Description
     content: |
@@ -22,7 +21,6 @@ sections:
 
       The active method is far more readable; the passive method is what you'd use against a target where you
       can't (or shouldn't) join the graph yourself.
-
   - title: Resources
     content:
       - text: ROS 2 Humble Docker Image
@@ -33,43 +31,50 @@ sections:
         link: https://www.wireshark.org/docs/dfref/r/rtps.html
       - text: OMG DDS-RTPS spec (port mapping)
         link: https://www.omg.org/spec/DDSI-RTPS/
-
   - title: Solution Guide
     collapsible: true
     steps:
       - title: Step 1. Stand up an attacker container on the simulator network
         description: |
-          ```docker pull osrf/ros:humble-desktop
-          docker run -it --network=simulator --ip=10.13.0.10 \
-              --cap-add NET_ADMIN --cap-add NET_RAW \
-              --name dds_enumerator osrf/ros:humble-desktop bash
+          ```# ROS 2 Humble + CycloneDDS are already pre-configured in your AttackBox terminal!
+          # Verify your active slot peers:
+          cat /tmp/cyclonedds.xml
+          echo "ROS_DOMAIN_ID=$ROS_DOMAIN_ID"
           ```
 
           `NET_RAW` is needed so `tcpdump` can open a raw socket.
-
       - title: Step 2. (Passive) Sniff DDS discovery on the bridge
-        description: |
+        description: >
           DDS discovery ports are domain-dependent: `7400 + 250 * domain_id` (plus a small per-participant
+
           offset). The lab runs domain 42, so discovery lands at `7400 + 250*42 = 17900` — the lab containers
+
           listen on 17910-17915. The common `7400-7700` filter is the domain-0 range and captures nothing here.
+
           Listen across the domain-42 discovery range instead:
-          ```apt-get update && apt-get install -y tcpdump
+
+          ```# Already pre-installed in the Web Range AttackBox (zero-egress lab)
+
           tcpdump -i any 'udp portrange 17900-18200' -nn -v
+
           ```
 
-          You should see UDP traffic between 10.13.0.3 (companion-computer) and 10.13.0.5 (simulator). Each
+
+          You should see UDP traffic between $DRONE_COMPANION_IP (companion-computer) and $DRONE_SIM_IP (simulator).
+          Each
+
           burst contains:
             - `DATA(p)` participant announcements (one per node)
             - `DATA(w)` writer (publisher) announcements (one per topic published)
             - `DATA(r)` reader (subscriber) announcements (one per topic subscribed)
 
           You can identify these by their RTPS submessage IDs, but `tcpdump` alone won't decode the payload.
-          For payload inspection, use Wireshark with the RTPS dissector (see Step 5).
 
+          For payload inspection, use Wireshark with the RTPS dissector (see Step 5).
       - title: Step 3. (Active) Join the graph and use the ros2 CLI
         description: |
           Configure the attacker container so it joins the same domain and Cyclone DDS unicast graph as the lab:
-          ```apt-get update && apt-get install -y ros-humble-rmw-cyclonedds-cpp
+          ```# Already pre-installed in the Web Range AttackBox (zero-egress lab)
           cat > /etc/cyclonedds.xml <<'EOF'
           <?xml version="1.0" encoding="UTF-8"?>
           <CycloneDDS xmlns="https://cdds.io/config">
@@ -79,8 +84,8 @@ sections:
               </General>
               <Discovery>
                 <Peers>
-                  <Peer address="10.13.0.3"/>
-                  <Peer address="10.13.0.5"/>
+                  <Peer address="$DRONE_COMPANION_IP"/>
+                  <Peer address="$DRONE_SIM_IP"/>
                 </Peers>
               </Discovery>
             </Domain>
@@ -88,7 +93,7 @@ sections:
           EOF
           export ROS_DOMAIN_ID=42
           export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
-          export CYCLONEDDS_URI=file:///etc/cyclonedds.xml
+          export CYCLONEDDS_URI=file:///tmp/cyclonedds.xml
           source /opt/ros/humble/setup.bash
           ```
 
@@ -98,7 +103,6 @@ sections:
           ros2 service list
           ros2 action list
           ```
-
       - title: Step 4. Dig into a specific topic
         description: |
           ```ros2 topic info /webcam/image_raw
@@ -109,18 +113,16 @@ sections:
 
           `ros2 topic info` lists the publishers and subscribers with their QoS settings (which you'll need to
           match if you want to spoof — see the Rogue Publisher Injection scenario).
-
       - title: Step 5. Wireshark with the RTPS dissector
         description: |
           From a host with Wireshark installed and access to the simulator bridge:
-          ```sudo wireshark -k -i docker0 -Y rtps
+          ```wireshark -k -i docker0 -Y rtps
           ```
 
           The `rtps` display filter shows only DDS-RTPS traffic. Drill into a `DATA(p)` packet to see the
           participant GUID, vendor ID, and built-in endpoint mask. Drill into `DATA(w)` packets to see the topic
           name, type name, and the full QoS policy block (reliability, durability, history, etc.) — useful for
           crafting an injector that QoS-matches the legitimate publisher.
-
       - title: Step 6. What an operator can (and can't) do about this
         description: |
           A vanilla ROS 2 deployment has no defense against any of the above. Defences are:

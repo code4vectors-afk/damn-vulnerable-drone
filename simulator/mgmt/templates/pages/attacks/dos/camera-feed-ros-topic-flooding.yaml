@@ -6,18 +6,22 @@ breadcrumb:
     link: /attacks
   - text: Denial of Service
   - text: ROS Topic Flood Attack
-
 sections:
   - title: Description
-    content: |
+    content: >
       This attack involves flooding a ROS 2 topic with large amounts of data to overwhelm the system's resources,
-      leading to disruption of services such as an RTSP stream. In this scenario, we target the `/webcam/image_raw` topic
+
+      leading to disruption of services such as an RTSP stream. In this scenario, we target the `/webcam/image_raw`
+      topic
+
       to disrupt the video stream.
 
-      On the master branch this scenario targeted ROS 1 Noetic (rospy + ROS_MASTER_URI). On the `ros2-migration` branch
-      the lab runs ROS 2 Humble — there is no ROS master, discovery is peer-to-peer DDS, and you join the graph by
-      matching `ROS_DOMAIN_ID` instead of pointing at a master URI.
 
+      On the master branch this scenario targeted ROS 1 Noetic (rospy + ROS_MASTER_URI). On the `ros2-migration` branch
+
+      the lab runs ROS 2 Humble — there is no ROS master, discovery is peer-to-peer DDS, and you join the graph by
+
+      matching `ROS_DOMAIN_ID` instead of pointing at a master URI.
   - title: Resources
     content:
       - text: ROS 2 Humble Docker Image
@@ -26,27 +30,34 @@ sections:
         link: https://docs.ros.org/en/humble/
       - text: Cyclone DDS configuration
         link: https://github.com/eclipse-cyclonedds/cyclonedds
-
   - title: Solution Guide
     collapsible: true
     steps:
       - title: Step 1. Set Up the ROS 2 Docker Container
         description: |
           Pull the ROS 2 Humble image and run an attacker container on the `simulator` network:
-          ```docker pull osrf/ros:humble-desktop
-          docker run -it --network=simulator --ip=10.13.0.10 \
-              --name ros_humble_attacker osrf/ros:humble-desktop bash
+          ```# ROS 2 Humble + CycloneDDS are already pre-configured in your AttackBox terminal!
+          # Verify your active slot peers:
+          cat /tmp/cyclonedds.xml
+          echo "ROS_DOMAIN_ID=$ROS_DOMAIN_ID"
           ```
-
       - title: Step 2. Configure ROS 2 Environment
-        description: |
+        description: >
           Inside the attacker container, set the same `ROS_DOMAIN_ID` the lab uses (42) and point Cyclone DDS at
-          the unicast peers (the simulator on 10.13.0.5 and the companion-computer on 10.13.0.3). Multicast does
+
+          the unicast peers (the simulator on $DRONE_SIM_IP and the companion-computer on $DRONE_COMPANION_IP).
+          Multicast does
+
           not reliably traverse Docker bridges, so we use an explicit peers list — the same one the lab uses
+
           internally:
-          ```apt-get update && apt-get install -y ros-humble-rmw-cyclonedds-cpp
+
+          ```# Already pre-installed in the Web Range AttackBox (zero-egress lab)
+
           cat > /etc/cyclonedds.xml <<'EOF'
+
           <?xml version="1.0" encoding="UTF-8"?>
+
           <CycloneDDS xmlns="https://cdds.io/config">
             <Domain id="any">
               <General>
@@ -54,19 +65,24 @@ sections:
               </General>
               <Discovery>
                 <Peers>
-                  <Peer address="10.13.0.3"/>
-                  <Peer address="10.13.0.5"/>
+                  <Peer address="$DRONE_COMPANION_IP"/>
+                  <Peer address="$DRONE_SIM_IP"/>
                 </Peers>
               </Discovery>
             </Domain>
           </CycloneDDS>
-          EOF
-          export ROS_DOMAIN_ID=42
-          export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
-          export CYCLONEDDS_URI=file:///etc/cyclonedds.xml
-          source /opt/ros/humble/setup.bash
-          ```
 
+          EOF
+
+          export ROS_DOMAIN_ID=42
+
+          export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+
+          export CYCLONEDDS_URI=file:///tmp/cyclonedds.xml
+
+          source /opt/ros/humble/setup.bash
+
+          ```
       - title: Step 3. Confirm You Can See the Graph
         description: |
           ```ros2 topic list
@@ -74,7 +90,6 @@ sections:
           ```
           You should see `/webcam/image_raw` and at least one publisher (the simulator) and one subscriber
           (the companion-computer's RTSP republisher).
-
       - title: Step 4. Create the Flood Script
         description: |
           Create `ros2-topic-flood.py`:
@@ -127,14 +142,12 @@ sections:
           if __name__ == '__main__':
               main()
           ```
-
       - title: Step 5. Execute the Flood Script
         description: |
           ```python3 ros2-topic-flood.py
           ```
           The attacker's messages interleave with the legitimate Gazebo frames at the subscriber. The RTSP stream
-          (rtsp://10.13.0.3:554/stream1) becomes a chaotic mix of legitimate video and attacker noise.
-
+          (rtsp://$DRONE_COMPANION_IP:554/stream1) becomes a chaotic mix of legitimate video and attacker noise.
       - title: Step 6. Monitor the Attack
         description: |
           From a separate shell on the attacker container:
@@ -142,11 +155,9 @@ sections:
           ```
           Without the attack you should see ~10 Hz (the gazebo_ros camera update rate). With the attack
           running, you should see hundreds-to-thousands of Hz.
-
       - title: Step 7. Stop the Attack
         description: |
           `Ctrl+C` in the terminal running the flood script.
-
       - title: Notes on ROS 2 vs ROS 1 attack mechanics
         description: |
           Two things to internalise:

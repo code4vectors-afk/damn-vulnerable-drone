@@ -5,116 +5,122 @@ breadcrumb:
     link: /attacks
   - text: Reconnaisance
   - text: Drone GPS & Telemetry Detection
-
 sections:
   - title: Description
-    content: |
-      In this scenario, the attacker aims to detect and analyze the GPS and telemetry data of a drone. By leveraging MAVLink protocol analysis and Wireshark filters, the attacker can identify various telemetry messages and gain insights into the drone's status and location.
-
+    content: >
+      In this scenario, the attacker aims to detect and analyze the GPS and telemetry data of a drone. By leveraging
+      MAVLink protocol analysis and Wireshark filters, the attacker can identify various telemetry messages and gain
+      insights into the drone's status and location.
   - title: Resources
     content:
       - text: MAVLink Common Message Definitions
         link: https://mavlink.io/en/messages/common.html
-
   - title: Solution
     collapsible: true
     steps:
       - title: Step 1
-        description: |
-          Follow the initial packet capture steps provided in the <a href="/attacks/recon/packet-sniffing">/attacks/recon/packet-sniffing</a> to configure your environment for capturing MAVLink traffic.
-
+        description: >
+          Follow the initial packet capture steps provided in the <a
+          href="/attacks/recon/packet-sniffing">/attacks/recon/packet-sniffing</a> to configure your environment for
+          capturing MAVLink traffic.
       - title: Step 2
-        description: |
-          Apply the following Wireshark filters to detect and analyze the specific telemetry messages you are interested in:
-
-      - title: HEARTBEAT (ID #0)
+        description: >
+          Apply the following Wireshark filters to detect and analyze the specific telemetry messages you are interested
+          in:
+      - title: HEARTBEAT (ID
         description: |
           Indicates the presence of a component and its operational status.
-          ```(ip.src == 10.13.0.3) && (mavlink_proto.msgid == "HEARTBEAT")
+          ```(ip.src == $DRONE_COMPANION_IP) && (mavlink_proto.msgid == "HEARTBEAT")
           ```
-
-      - title: SYS_STATUS (ID #1)
+      - title: SYS_STATUS (ID
         description: |
           Provides a quick overview of the system's status, including battery status, load, and communication health.
-          ```(ip.src == 10.13.0.3) && (mavlink_proto.msgid == "SYS_STATUS")
+          ```(ip.src == $DRONE_COMPANION_IP) && (mavlink_proto.msgid == "SYS_STATUS")
           ```
-
-      - title: GPS_RAW_INT (ID #24)
+      - title: GPS_RAW_INT (ID
         description: |
           Contains raw GPS data such as latitude, longitude, altitude, and satellite information.
-          ```(ip.src == 10.13.0.3) && (mavlink_proto.msgid == "GPS_RAW_INT")
+          ```(ip.src == $DRONE_COMPANION_IP) && (mavlink_proto.msgid == "GPS_RAW_INT")
           ```
+      - title: GLOBAL_POSITION_INT (ID
+        description: >
+          Provides the global position of the drone, including latitude, longitude, and altitude. It is more processed
+          and generally more reliable than raw GPS data.
 
-      - title: GLOBAL_POSITION_INT (ID #33)
-        description: |
-          Provides the global position of the drone, including latitude, longitude, and altitude. It is more processed and generally more reliable than raw GPS data.
-          ```(ip.src == 10.13.0.3) && (mavlink_proto.msgid == "GLOBAL_POSITION_INT")
+          ```(ip.src == $DRONE_COMPANION_IP) && (mavlink_proto.msgid == "GLOBAL_POSITION_INT")
+
           ```
-
-      - title: ATTITUDE (ID #30)
+      - title: ATTITUDE (ID
         description: |
           Provides information on the drone's orientation, including pitch, roll, and yaw angles.
-          ```(ip.src == 10.13.0.3) && (mavlink_proto.msgid == "ATTITUDE")
+          ```(ip.src == $DRONE_COMPANION_IP) && (mavlink_proto.msgid == "ATTITUDE")
           ```
-
-      - title: ALTITUDE (ID #141)
+      - title: ALTITUDE (ID
         description: |
           Includes information about altitude and altitude change rates.
-          ```(ip.src == 10.13.0.3) && (mavlink_proto.msgid == "ALTITUDE")
+          ```(ip.src == $DRONE_COMPANION_IP) && (mavlink_proto.msgid == "ALTITUDE")
           ```
-
-      - title: BATTERY_STATUS (ID #147)
+      - title: BATTERY_STATUS (ID
         description: |
           Provides information about battery voltage, current, remaining power, and battery temperature.
-          ```(ip.src == 10.13.0.3) && (mavlink_proto.msgid == "BATTERY_STATUS")
+          ```(ip.src == $DRONE_COMPANION_IP) && (mavlink_proto.msgid == "BATTERY_STATUS")
           ```
+      - title: VFR_HUD (ID
+        description: >
+          Contains essential flight information for piloting the drone, such as airspeed, ground speed, heading,
+          throttle, and climb rate.
 
-      - title: VFR_HUD (ID #74)
-        description: |
-          Contains essential flight information for piloting the drone, such as airspeed, ground speed, heading, throttle, and climb rate.
-          ```(ip.src == 10.13.0.3) && (mavlink_proto.msgid == "VFR_HUD")
+          ```(ip.src == $DRONE_COMPANION_IP) && (mavlink_proto.msgid == "VFR_HUD")
+
           ```
-
-      - title: STATUSTEXT (ID #253)
+      - title: STATUSTEXT (ID
         description: |
           General status information and error messages.
-          ```(ip.src == 10.13.0.3) && (mavlink_proto.msgid == "STATUSTEXT")
+          ```(ip.src == $DRONE_COMPANION_IP) && (mavlink_proto.msgid == "STATUSTEXT")
           ```
-
-      - title: MISSION_CURRENT (ID #42)
+      - title: MISSION_CURRENT (ID
         description: |
           Indicates the current waypoint in the drone's mission plan.
-          ```(ip.src == 10.13.0.3) && (mavlink_proto.msgid == "MISSION_CURRENT")
+          ```(ip.src == $DRONE_COMPANION_IP) && (mavlink_proto.msgid == "MISSION_CURRENT")
           ```
-
-      - title: NAV_CONTROLLER_OUTPUT (ID #62)
+      - title: NAV_CONTROLLER_OUTPUT (ID
         description: |
           Shows navigation controller's outputs, useful to analyze how the drone is performing against its waypoints.
-          ```(ip.src == 10.13.0.3) && (mavlink_proto.msgid == "NAV_CONTROLLER_OUTPUT")
+          ```(ip.src == $DRONE_COMPANION_IP) && (mavlink_proto.msgid == "NAV_CONTROLLER_OUTPUT")
           ```
-
-      - title: RADIO_STATUS (ID #109)
+      - title: RADIO_STATUS (ID
         description: |
           Provides information about the signal quality of the radio link.
-          ```(ip.src == 10.13.0.3) && (mavlink_proto.msgid == "RADIO_STATUS")
+          ```(ip.src == $DRONE_COMPANION_IP) && (mavlink_proto.msgid == "RADIO_STATUS")
           ```
-
       - title: Connect all of the telemetry gathering into a single PYMAVLINK script
-        description: |
+        description: >
           Try running this script to view all some of the drone telemetry in real-time
+
           ```import time
+
           import curses
+
           from pymavlink import mavutil
 
+
           # Establish connection to the MAVLink device
-          connection = mavutil.mavlink_connection('tcp:10.13.0.3:5760')
+
+          connection = mavutil.mavlink_connection('tcp:$DRONE_COMPANION_IP:5760')
+
 
           # Wait for the first heartbeat to know the system ID
+
           print("Waiting for heartbeat...")
+
           connection.wait_heartbeat()
-          print("Heartbeat received from system (system %u component %u)" % (connection.target_system, connection.target_component))
+
+          print("Heartbeat received from system (system %u component %u)" % (connection.target_system,
+          connection.target_component))
+
 
           # Function to initialize curses and create a window
+
           def init_curses():
               stdscr = curses.initscr()
               curses.noecho()
@@ -123,6 +129,7 @@ sections:
               return stdscr
 
           # Function to print telemetry messages on the screen
+
           def print_telemetry(stdscr, telemetry_data):
               stdscr.clear()
               for i, (key, value) in enumerate(telemetry_data.items()):
@@ -130,6 +137,7 @@ sections:
               stdscr.refresh()
 
           # Main function to capture and display telemetry data
+
           def main(stdscr):
               telemetry_data = {
                   "HEARTBEAT": "N/A",
@@ -176,5 +184,7 @@ sections:
                       print_telemetry(stdscr, telemetry_data)
 
           # Initialize curses and start the main function
+
           curses.wrapper(main)
+
           ```

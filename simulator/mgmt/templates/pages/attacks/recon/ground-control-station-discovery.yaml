@@ -6,19 +6,16 @@ breadcrumb:
     link: /attacks
   - text: Reconnaissance
   - text: Ground Control Station Discovery
-
 sections:
   - title: Description
     content: |
       The whole goal here is to witness both the source and destination for MAVLink telemetry and 
       commands to determine the IP address for the ground control stations. You should be able to 
       see commands and telemetry flowing between the companion computer and GCS IPs while the drone is flying around.
-
   - title: Resources
     content:
       - text: Wireshark
         link: https://www.wireshark.org/
-
   - title: Solution Guide (Non-Wifi-Mode)
     collapsible: true
     steps:
@@ -29,35 +26,47 @@ sections:
           ```ip addr show
           ```
 
-          You should have a bridge network with an IP address within the range of 10.13.0.0/24.
-
+          You should have a bridge network with an IP address within the range of $DRONE_SUBNET.
       - title: Step 2. Host Discovery
-        description: |
-          Use Nmap to scan the network range, excluding the IP addresses of the attacker machine and the simulator machine.
+        description: >
+          Use Nmap to scan the network range, excluding the IP addresses of the attacker machine and the simulator
+          machine.
 
-          ```nmap -sn 10.13.0.0/24 --exclude 10.13.0.1,10.13.0.5
+
+          ```nmap -sn $DRONE_SUBNET --exclude $DRONE_SIM_IP
+
           ```
 
-          After running this scan, you should be able to identify the IP address of hosts on the network (Typically this should help identify GCS computers). In our case, there doesn't seem to be any activity/services that pin-point the GCS on the network.
 
+          After running this scan, you should be able to identify the IP address of hosts on the network (Typically this
+          should help identify GCS computers). In our case, there doesn't seem to be any activity/services that
+          pin-point the GCS on the network.
       - title: Step 3. Generate/Listen for Mavlink traffic
-        description: |
-          Connect to the drone simulation and use the flight state buttons to control the drone. This will generate MAVLink traffic that you can capture and analyze. Start Wireshark and run the following filter:
+        description: >
+          Connect to the drone simulation and use the flight state buttons to control the drone. This will generate
+          MAVLink traffic that you can capture and analyze. Start Wireshark and run the following filter:
+
 
           ```mavlink_proto 
+
           ```
 
-          From here you should be able to see the companion computer IP Address `10.13.0.3` and what seems to be a GCS IP Address `10.13.0.4` 
 
+          From here you should be able to see the companion computer IP Address `$DRONE_COMPANION_IP` and what seems to
+          be a GCS IP Address `$DRONE_GCS_IP` 
       - title: Step 4. Filter for GCS Packet Sniffing with Wireshark
-        description: |
-          Select the correct interface to monitor. Apply a filter to capture all MAVLink packets coming from the GCS to the drone:
+        description: >
+          Select the correct interface to monitor. Apply a filter to capture all MAVLink packets coming from the GCS to
+          the drone:
 
-          ```mavlink_proto && ip.src == 10.13.0.4
+
+          ```mavlink_proto && ip.src == $DRONE_GCS_IP
+
           ```
 
-          This filter will help you capture and analyze the MAVLink telemetry and commands flowing between the ground control station and the drone. Use the information in the packets to confirm the GCS IP address.
 
+          This filter will help you capture and analyze the MAVLink telemetry and commands flowing between the ground
+          control station and the drone. Use the information in the packets to confirm the GCS IP address.
   - title: Solution Guide (Wifi-Mode)
     collapsible: true
     steps:
@@ -68,31 +77,43 @@ sections:
           ```ip addr show
           ```
 
-          You should have a bridge network with an IP address within the range of 10.13.0.0/24.
-
+          You should have a bridge network with an IP address within the range of $DRONE_SUBNET.
       - title: Step 2. Host Discovery
-        description: |
+        description: >
           Use Nmap to scan the network range.
 
+
           ```nmap -sn 192.168.13.0/24
+
           ```
 
-          After running this scan, you should be able to identify the IP address of hosts on the network (Typically this should help identify GCS computers). In our case, there doesn't seem to be any activity/services that pin-point the GCS on the network.
 
+          After running this scan, you should be able to identify the IP address of hosts on the network (Typically this
+          should help identify GCS computers). In our case, there doesn't seem to be any activity/services that
+          pin-point the GCS on the network.
       - title: Step 3. Generate/Listen for Mavlink traffic
-        description: |
-          Connect to the drone simulation and use the flight state buttons to control the drone. This will generate MAVLink traffic that you can capture and analyze. Start Wireshark and run the following filter:
+        description: >
+          Connect to the drone simulation and use the flight state buttons to control the drone. This will generate
+          MAVLink traffic that you can capture and analyze. Start Wireshark and run the following filter:
+
 
           ```mavlink_proto 
+
           ```
 
-          From here you should be able to see the companion computer IP Address `192.168.13.1` and what seems to be a GCS IP Address `192.168.13.14` 
 
+          From here you should be able to see the companion computer IP Address `192.168.13.1` and what seems to be a
+          GCS IP Address `192.168.13.14` 
       - title: Step 4. Filter for GCS Packet Sniffing with Wireshark
-        description: |
-          Select the correct interface to monitor. Apply a filter to capture all MAVLink packets coming from the GCS to the drone:
+        description: >
+          Select the correct interface to monitor. Apply a filter to capture all MAVLink packets coming from the GCS to
+          the drone:
+
 
           ```mavlink_proto && ip.src == 192.168.13.14
+
           ```
 
-          This filter will help you capture and analyze the MAVLink telemetry and commands flowing between the ground control station and the drone. Use the information in the packets to confirm the GCS IP address.
+
+          This filter will help you capture and analyze the MAVLink telemetry and commands flowing between the ground
+          control station and the drone. Use the information in the packets to confirm the GCS IP address.

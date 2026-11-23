@@ -1,0 +1,25 @@
+{
+  "name": "dvd-orchestrator",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fastify/cookie": "^11.0.1",
+    "@fastify/static": "^8.0.0",
+    "better-sqlite3": "^11.5.0",
+    "fastify": "^5.1.0",
+    "http-proxy": "^1.18.1",
+    "js-yaml": "^5.5.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.11",
+    "@types/http-proxy": "^1.17.15",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}

@@ -1,0 +1,117 @@
+# Per-slot isolated DVD Lite stack. Required env: SLOT (1..5). Run via scripts/slot.sh.
+# Subnet 10.13.${SLOT}.0/24, internal (no egress). Only the gateway publishes ports (127.0.0.1).
+name: dvd-slot${SLOT}
+
+x-img: &lite-env
+  LITE: "true"
+
+services:
+  flight-controller-lite:
+    image: n1ckaleks/damn-vulnerable-drone-flight-controller-lite:latest
+    container_name: s${SLOT}-flight-controller-lite
+    privileged: true  # upstream requirement; contained by internal net. See docs/PHASE1-AUDIT.md
+    environment: *lite-env
+    volumes: [ "serial-uart-socket:/sockets" ]
+    networks: { lab: { ipv4_address: "10.13.${SLOT}.2" } }
+
+  companion-computer-lite:
+    image: n1ckaleks/damn-vulnerable-drone-companion-computer-lite:latest
+    container_name: s${SLOT}-companion-computer-lite
+    privileged: true
+    depends_on: [ flight-controller-lite ]
+    entrypoint: [ "/slot-rewrite.sh" ]
+    command: [ "/start.sh" ]
+    environment:
+      SLOT_SUBNET: "10.13.${SLOT}"
+      LITE: "true"
+      ROS_DOMAIN_ID: "42"
+      RMW_IMPLEMENTATION: rmw_cyclonedds_cpp
+      CYCLONEDDS_URI: file:///etc/cyclonedds.xml
+    volumes:
+      - serial-uart-socket:/sockets
+      - ../overrides/slot-rewrite.sh:/slot-rewrite.sh:ro
+    networks: { lab: { ipv4_address: "10.13.${SLOT}.3" } }
+
+  ground-control-station-lite:
+    build: ../gcs
+    image: dvd-gcs-vnc:latest
+    container_name: s${SLOT}-ground-control-station-lite
+    privileged: true
+    depends_on: [ companion-computer-lite ]
+    environment:
+      LITE: "true"
+      HEADLESS: "1"
+      QT_NO_MITSHM: "1"
+      XDG_RUNTIME_DIR: /tmp
+    networks: { lab: { ipv4_address: "10.13.${SLOT}.4" } }
+
+  simulator-lite:
+    image: n1ckaleks/damn-vulnerable-drone-simulator-lite:latest
+    container_name: s${SLOT}-simulator-lite
+    privileged: true
+    entrypoint: [ "/slot-rewrite.sh" ]
+    command: [ "python3", "/app/simulator/mgmt/app.py" ]
+    environment:
+      SLOT_SUBNET: "10.13.${SLOT}"
+      LITE: "true"
+      SLOT_PREFIX: "s${SLOT}-"
+      DOCKER_HOST: tcp://docker-proxy:2375   # filtered API, NOT the raw host socket
+    volumes:
+      - ../overrides/utils.py:/app/simulator/mgmt/routes/utils.py:ro
+      - ../overrides/gcs.py:/app/simulator/mgmt/routes/gcs.py:ro
+      - ../overrides/slot-rewrite.sh:/slot-rewrite.sh:ro
+      - ../../simulator/mgmt/templates/pages/attacks:/app/simulator/mgmt/templates/pages/attacks:ro
+    networks: { lab: { ipv4_address: "10.13.${SLOT}.5" } }
+
+  # Restricts the simulator's Docker access to container lookup + exec only.
+  docker-proxy:
+    image: tecnativa/docker-socket-proxy:latest
+    container_name: s${SLOT}-docker-proxy
+    environment: { CONTAINERS: 1, EXEC: 1, POST: 1 }
+    volumes: [ "/var/run/docker.sock:/var/run/docker.sock" ]
+    networks: { lab: { ipv4_address: "10.13.${SLOT}.9" } }
+
+  attacker:
+    build: ../attacker
+    image: dvd-attacker:latest
+    container_name: s${SLOT}-attacker
+    cap_drop: [ ALL ]
+    cap_add: [ NET_RAW, NET_ADMIN ]
+    security_opt: [ "no-new-privileges:true" ]
+    pids_limit: 256
+    mem_limit: 1g
+    cpus: 1.0
+    environment:
+      DRONE_FC_IP: "10.13.${SLOT}.2"
+      DRONE_COMPANION_IP: "10.13.${SLOT}.3"
+      DRONE_GCS_IP: "10.13.${SLOT}.4"
+      DRONE_SIM_IP: "10.13.${SLOT}.5"
+      DRONE_SUBNET: "10.13.${SLOT}.0/24"
+    networks: { lab: { ipv4_address: "10.13.${SLOT}.10" } }
+
+  # Only container with host access: TCP passthrough to sim/admin/terminal.
+  gateway:
+    image: nginx:alpine
+    container_name: s${SLOT}-gateway
+    restart: on-failure
+    depends_on: [ simulator-lite, companion-computer-lite, attacker ]
+    volumes: [ "./gateway.nginx.conf:/etc/nginx/nginx.conf:ro" ]
+    ports:
+      - "127.0.0.1:81${SLOT}0:8000"   # simulator  (8110, 8120, ...)
+      - "127.0.0.1:31${SLOT}0:3000"   # companion
+      - "127.0.0.1:76${SLOT}0:7681"   # terminal
+      - "127.0.0.1:61${SLOT}0:6080"   # QGC (noVNC)
+    networks:
+      lab: { ipv4_address: "10.13.${SLOT}.8" }
+      edge: {}
+
+volumes:
+  serial-uart-socket:
+
+networks:
+  lab:
+    internal: true
+    driver: bridge
+    ipam: { config: [ { subnet: "10.13.${SLOT}.0/24" } ] }
+  edge:
+    driver: bridge

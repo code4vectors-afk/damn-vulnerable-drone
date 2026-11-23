@@ -1,0 +1,13 @@
+========================================================================
+  DVD ATTACKBOX  //  ISOLATED LAB SUBNET (NO INTERNET EGRESS)
+========================================================================
+  Flight Controller : $DRONE_FC_IP
+  Companion Computer: $DRONE_COMPANION_IP  (Web :3000 | MAVLink :5760 | RTSP :554 | SSH :22)
+  Ground Control    : $DRONE_GCS_IP  (UDP :14550)
+  Simulator         : $DRONE_SIM_IP  (Web :8000)
+  Lab Subnet        : $DRONE_SUBNET
+  ROS 2 Domain      : ROS_DOMAIN_ID=42 (CycloneDDS pre-configured)
+  Pre-baked Tools   : /opt/dvd-tools (passwords.txt, ros2_rogue_publisher.py)
+========================================================================
+  AUTHORIZED TRAINING USE ONLY.
+========================================================================

@@ -1,19 +1,22 @@
 title: GPS Offset Glitching
 order: 4
-description: Inducing a GPS glitch by skewing GPS position offsets to force the drone into an EKF failsafe, triggering a forced landing.
+description: >-
+  Inducing a GPS glitch by skewing GPS position offsets to force the drone into an EKF failsafe, triggering a forced
+  landing.
 breadcrumb:
   - text: Attack Scenarios
     link: /attacks
   - text: Denial of Service
   - text: GPS Offset Attack
-
 sections:
   - title: Description
-    content: |
+    content: >
       The GPS Offset Attack involves manipulating the GPS position offset parameters to induce a GPS glitch. 
-      By setting the GPS offsets to their maximum values, the drone's position data becomes highly inaccurate, 
-      causing the EKF (Extended Kalman Filter) to detect inconsistencies and triggering a failsafe that forces the drone to land.
 
+      By setting the GPS offsets to their maximum values, the drone's position data becomes highly inaccurate, 
+
+      causing the EKF (Extended Kalman Filter) to detect inconsistencies and triggering a failsafe that forces the drone
+      to land.
   - title: Resources
     content:
       - text: ArduPilot Documentation
@@ -22,18 +25,16 @@ sections:
         link: https://mavlink.io/en/
       - text: ArduCopter Paramters
         link: https://ardupilot.org/copter/docs/parameters.html#gps-pos1-x-antenna-x-position-offset
-
   - title: Solution Guide
     collapsible: true
     steps:
       - title: Step 1. Setup
         description: |
           Ensure you have Python and the necessary libraries installed:
-          ```sudo apt-get update
-          sudo apt-get install python3 python3-pip
+          ```apt-get update
+          # Already pre-installed in the Web Range AttackBox (zero-egress lab)
           pip3 install pymavlink
           ```
-
       - title: Step 2. Create the Script
         description: |
           Create a Python script named `gps_offset_attack.py` and paste the following code:
@@ -88,18 +89,24 @@ sections:
               # Execute the script
               main(target_ip, target_port, max_offset)
           ```
-
       - title: Step 3. Run the Script
-        description: |
-          While the drone is flying execute the script with sudo and the target IP and port of the drone:
-          ```sudo python gps_offset_attack.py (target_ip:port) 10
+        description: >
+          While the drone is flying execute the script with and the target IP and port of the drone:
+
+          ```python gps_offset_attack.py (target_ip:port) 10
+
           ```
-          Replace `(target_ip:target_port)` with the actual IP address and port of the drone, for example `10.13.0.3:5760`. The script will set all GPS position offsets to `10` meters, inducing a GPS glitch.
 
+          Replace `(target_ip:target_port)` with the actual IP address and port of the drone, for example
+          `$DRONE_COMPANION_IP:5760`. The script will set all GPS position offsets to `10` meters, inducing a GPS
+          glitch.
       - title: Step 4. Monitor the Effects
-        description: |
-          After executing the script, monitor the drone's behavior via the Ground Control Station (GCS). The induced GPS glitch should trigger EKF errors, causing the drone to switch to LAND mode as a failsafe response. You may see messages such as "GPS Glitch" and "EKF Failsafe: changed to LAND Mode."
-
+        description: >
+          After executing the script, monitor the drone's behavior via the Ground Control Station (GCS). The induced GPS
+          glitch should trigger EKF errors, causing the drone to switch to LAND mode as a failsafe response. You may see
+          messages such as "GPS Glitch" and "EKF Failsafe: changed to LAND Mode."
       - title: Step 5. Restore Safe Operations
-        description: |
-          To restore safe operations, reset the GPS offset parameters to their default values (usually `0`) or restart the drone to clear any manual changes. This ensures that the drone can resume normal operation without further GPS-induced issues.
+        description: >
+          To restore safe operations, reset the GPS offset parameters to their default values (usually `0`) or restart
+          the drone to clear any manual changes. This ensures that the drone can resume normal operation without further
+          GPS-induced issues.

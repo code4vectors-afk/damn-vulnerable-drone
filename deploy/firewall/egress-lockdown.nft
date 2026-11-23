@@ -1,0 +1,20 @@
+#!/usr/sbin/nft -f
+# Host-level egress lockdown for Linux/Cloud deployments running untrusted lab slots.
+# Blocks all outbound traffic from lab bridge subnets (10.13.1.0/24 .. 10.13.5.0/24)
+# to the host LAN and public internet while permitting intra-slot traffic.
+
+table inet dvd_egress_lockdown {
+  set lab_subnets {
+    type ipv4_addr
+    flags interval
+    elements = { 10.13.1.0/24, 10.13.2.0/24, 10.13.3.0/24, 10.13.4.0/24, 10.13.5.0/24 }
+  }
+
+  chain forward {
+    type filter hook forward priority 0; policy accept;
+    # Allow established return traffic back to the host reverse proxy
+    ct state established,related accept
+    # Drop any forwarded egress from lab subnets to anywhere outside their own bridge
+    ip saddr @lab_subnets drop
+  }
+}

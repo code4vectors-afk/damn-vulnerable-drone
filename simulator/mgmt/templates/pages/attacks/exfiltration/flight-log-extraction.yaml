@@ -1,11 +1,12 @@
 title: Flight Log Extraction
-description: Collecting and converting flight logs from an ArduPilot/MAVLink drone using MAVProxy and pymavlink, and then converting these logs to CSV format for analysis.
+description: >-
+  Collecting and converting flight logs from an ArduPilot/MAVLink drone using MAVProxy and pymavlink, and then
+  converting these logs to CSV format for analysis.
 breadcrumb:
   - text: Attack Scenarios
     link: /attacks
   - text: Exfiltration
   - text: Flight Log Extraction
-
 sections:
   - title: Description
     content: |
@@ -13,7 +14,6 @@ sections:
       ArduPilot/MAVLink drone. This can be achieved using tools like MAVProxy or pymavlink scripts. 
       After collecting the logs, they can be converted to a CSV format using pybinlog for easy viewing 
       and analysis.
-
   - title: Resources
     content:
       - text: MAVLink Protocol
@@ -24,24 +24,22 @@ sections:
         link: https://mavlink.io/en/mavgen_python/
       - text: pybinlog
         link: https://pypi.org/project/pybinlog/
-
   - title: Solution Guide
     collapsible: true
     steps:
       - title: Step 1. Setup MAVProxy
         description: |
           Ensure you have MAVProxy installed:
-          ```sudo apt-get update
-          sudo apt-get install python3-pip
+          ```apt-get update
+          # Already pre-installed in the Web Range AttackBox (zero-egress lab)
           pip3 install mavproxy
           ```
-
       - title: Step 2. Collect Logs Using MAVProxy
         description: |
           Connect to the drone and download the logs using MAVProxy:
-          ```mavproxy.py --master=tcp:10.13.0.3:5760
+          ```mavproxy.py --master=tcp:$DRONE_COMPANION_IP:5760
           ```
-          
+
           List available logs:
           ```mavproxy> log list
           ```
@@ -51,15 +49,13 @@ sections:
           mavproxy> log download <log_index>
           ```
           The logs will be saved in the `logs` directory within your aircraft directory.
-
       - title: Step 3. Setup pymavlink
         description: |
           Ensure you have pymavlink installed:
-          ```sudo apt-get update
-          sudo apt-get install python3 python3-pip
+          ```apt-get update
+          # Already pre-installed in the Web Range AttackBox (zero-egress lab)
           pip3 install pymavlink scapy
           ```
-
       - title: Step 4. Collect Logs Using pymavlink Script
         description: |
           Create a Python script named `log-extract.py` to collect logs:
@@ -132,9 +128,8 @@ sections:
           ```
 
           Run the script to download logs:
-          ```python log-extract.py tcp:10.13.0.3:5760 1
+          ```python log-extract.py tcp:$DRONE_COMPANION_IP:5760 1
           ```
-
       - title: Step 5. Convert BIN Logs to CSV Using pybinlog
         description: |
           Ensure you have pybinlog installed:
@@ -150,12 +145,14 @@ sections:
           ```
 
           This will convert `log_1.bin` to CSV format and save it in the `logs_csv` directory.
-
       - title: Step 6. Analyze the CSV Logs
-        description: |
-          Open the generated CSV files to view and analyze the flight log data using any spreadsheet software or data analysis tool.<br><br>
-          
+        description: >
+          Open the generated CSV files to view and analyze the flight log data using any spreadsheet software or data
+          analysis tool.<br><br>
+
+
           Below is a table with a breakdown for the different type of logs you can find:
+
 
           <table border="1">
             <thead>
@@ -443,5 +440,3 @@ sections:
               </tr>
             </tbody>
           </table>
-
-

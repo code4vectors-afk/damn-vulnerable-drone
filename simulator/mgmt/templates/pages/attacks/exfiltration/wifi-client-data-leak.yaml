@@ -5,15 +5,18 @@ breadcrumb:
     link: /attacks
   - text: Exfiltration
   - text: Wifi Client Data Leak
-
 sections:
   - title: Description
-    content: |
+    content: >-
       <span class="alert-warning">🚧 Scenario Under development</span>
 
+
+
+      > **Web Range Runtime Note:** This Wi-Fi link-layer scenario requires virtual wireless radios (`mac80211_hwsim` /
+      `wlan0mon`), available on the **Linux VM Runtime**. In macOS Lite mode, your AttackBox is already bridged onto
+      `$DRONE_SUBNET` so you can skip directly to network, MAVLink, companion, and ROS 2 scenarios.
   - title: Resources
     content: []
-
   - title: Solution Guide
     collapsible: true
     steps: []

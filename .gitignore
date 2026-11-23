@@ -8,3 +8,8 @@ mav.parm
 *.csv
 *.netxml
 *.pyc
+
+# Web Range
+node_modules/
+data/app.db*
+.env

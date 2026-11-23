@@ -6,21 +6,25 @@ breadcrumb:
     link: /attacks
   - text: Reconnaissance
   - text: Drone Discovery
-
 sections:
   - title: Description
-    content: |
-      Drone signals discovery involves scanning a network range of endpoint addresses and ports on a UAV or MAVLink-compatible device to discover open ports and active services. Typically this technique requires an attack to be on the same wireless network as the GCS and Drone data-link. This process helps in understanding the UAV's network interface setup and identifying potential entry points for further analysis or penetration testing.
+    content: >
+      Drone signals discovery involves scanning a network range of endpoint addresses and ports on a UAV or
+      MAVLink-compatible device to discover open ports and active services. Typically this technique requires an attack
+      to be on the same wireless network as the GCS and Drone data-link. This process helps in understanding the UAV's
+      network interface setup and identifying potential entry points for further analysis or penetration testing.
 
-      Drone systems that use MAVLink can choose arbitrary ports for communication. However, there are several commonly used UDP ports within the drone and ground station software ecosystems. These ports are often used for various purposes such as telemetry, Ground Control Station (GCS) communication, and inter-vehicle communication. (14550, 14540, 14560, 14580, 5760, 5762, 5763)
 
+      Drone systems that use MAVLink can choose arbitrary ports for communication. However, there are several commonly
+      used UDP ports within the drone and ground station software ecosystems. These ports are often used for various
+      purposes such as telemetry, Ground Control Station (GCS) communication, and inter-vehicle communication. (14550,
+      14540, 14560, 14580, 5760, 5762, 5763)
   - title: Resources
     content:
       - text: Nmap
         link: https://nmap.org/
       - text: GNU Radio
         link: https://www.gnuradio.org/
-
   - title: Solution Guide (Non-Wifi-Mode "Half-Baked")
     collapsible: true
     steps:
@@ -31,33 +35,38 @@ sections:
           ```ip addr show
           ```
 
-          You should have a bridge network with an IP address within the range of 10.13.0.0/24.
-
+          You should have a bridge network with an IP address within the range of $DRONE_SUBNET.
       - title: Step 2. Host Discovery
-        description: |
-          Use Nmap to scan the network range. (Excluding the IP address of the attacker machine and the simulator machine.)
+        description: >
+          Use Nmap to scan the network range. (Excluding the IP address of the attacker machine and the simulator
+          machine.)
 
-          ```nmap -sn 10.13.0.0/24 --exclude 10.13.0.1,10.13.0.5
+
+          ```nmap -sn $DRONE_SUBNET --exclude $DRONE_SIM_IP
+
           ```
+
 
           After running this scan you should be able to identify the IP address of hosts on the network.
-
       - title: Step 3. MAVLink Port Scan
-        description: |
-          Use Nmap to scan the specific network ports of each host to identify UAV or MAVLink-compatible services. (Excluding the IP address of the attacker machine and the simulator machine.)
+        description: >
+          Use Nmap to scan the specific network ports of each host to identify UAV or MAVLink-compatible services.
+          (Excluding the IP address of the attacker machine and the simulator machine.)
 
-          ```nmap 10.13.0.0/24 -p 1-16000 --exclude 10.13.0.1,10.13.0.5
+
+          ```nmap $DRONE_SUBNET -p 1-16000 --exclude $DRONE_SIM_IP
+
           ```
 
-          After running this scan you should be able to identify the open ports and active services on the drone and the ground control station.
 
+          After running this scan you should be able to identify the open ports and active services on the drone and the
+          ground control station.
   - title: Solution Guide (Wifi-Mode "Fully Deployed")
     collapsible: true
     steps:
       - title: Step 1. Connect to Wifi Network
         description: |
           Use your access gained from: <a href="/attacks/recon/wifi-analysis-cracking">Wireless Analysis & Cracking</a>
-
       - title: Step 2. Host Discovery
         description: |
           Use Nmap to scan the network range. (Excluding the IP address of the attacker machine.)
@@ -66,12 +75,16 @@ sections:
           ```
 
           After running this scan you should be able to identify the IP address of hosts on the network.
-
       - title: Step 3. MAVLink Port Scan
-        description: |
-          Use Nmap to scan a wide range of network ports of each host to identify UAV or MAVLink-compatible services. (Excluding the IP address of the attacker machine.)
+        description: >
+          Use Nmap to scan a wide range of network ports of each host to identify UAV or MAVLink-compatible services.
+          (Excluding the IP address of the attacker machine.)
+
 
           ```nmap 192.168.13.0/24 -p 1-16000 --exclude 192.168.13.10
+
           ```
 
-          After running this scan you should be able to identify the open ports and active services on the drone and the ground control station.
+
+          After running this scan you should be able to identify the open ports and active services on the drone and the
+          ground control station.

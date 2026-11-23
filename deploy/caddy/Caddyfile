@@ -1,0 +1,17 @@
+# Production wildcard HTTPS reverse proxy for DVDrone Web Range
+# Requires wildcard DNS: *.sim.yourdomain.com -> your Linux host IP
+# Set CLOUDFLARE_API_TOKEN (or your DNS provider plugin) for automatic wildcard TLS.
+{
+  email ops@yourdomain.com
+}
+
+*.sim.yourdomain.com {
+  tls {
+    dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+  }
+  reverse_proxy 127.0.0.1:4000 {
+    header_up Host {http.request.host}
+    header_up X-Real-IP {remote_host}
+    flush_interval -1
+  }
+}
