@@ -9,10 +9,11 @@ for f in /interface/app.py /interface/routes/logs.py /interface/static/js/flight
 done
 # Simulator page's browser JS talks Socket.IO straight to http://localhost:3000. In the web range the
 # browser reaches the companion via this lab's admin-<id> host, so derive it from the page origin.
-# WebSocket-only: cookies ride along on WS handshakes, so the auth proxy still applies.
+# Also disable upstream's "not accessing from localhost origin" SweetAlert popup.
 T=/app/simulator/mgmt/templates/pages/simulator.html
 if [ -f "$T" ]; then
   sed -i 's#const CC_URL = "http://localhost:3000";#const CC_URL = location.protocol + "//" + location.host.replace(/^sim-/, "admin-");#' "$T"
   sed -i 's#transports: \["websocket","polling"\]#transports: ["websocket"]#' "$T"
+  sed -i "s#window.location.hostname !== 'localhost'#false#g" "$T"
 fi
 exec "$@"
