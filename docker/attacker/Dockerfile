@@ -24,7 +24,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       ffmpeg python3 python3-pip python3-scapy python3-dev gcc libxml2-dev libxslt1-dev \
       tcpdump socat netcat-openbsd less procps openssh-client ftp binutils jq \
     && pip3 install --no-cache-dir pymavlink MAVProxy future requests \
-    && apt-get purge -y gcc python3-dev && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
 RUN arch=$(uname -m) && curl -fsSL -o /usr/local/bin/ttyd \
