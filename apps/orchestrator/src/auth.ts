@@ -14,7 +14,7 @@ export interface User { id: number; username: string; is_admin: number; tos_at: 
 
 export function register(username: string, password: string, code: string, tos: boolean): User {
   if (!/^[a-zA-Z0-9_-]{3,24}$/.test(username)) throw new Error("Invalid callsign (3-24 chars, a-z 0-9 _ -)");
-  if (password.length < 10) throw new Error("Password must be at least 10 characters");
+  if (password.length < 8) throw new Error("Password must be at least 8 characters");
   if (!tos) throw new Error("You must accept the Authorized Training agreement");
   const inv = db.prepare("SELECT * FROM invites WHERE code=?").get(code) as any;
   if (!inv || inv.revoked || inv.uses >= inv.max_uses) throw new Error("Invalid invite code");

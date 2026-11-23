@@ -20,7 +20,7 @@ import {
   reconcile,
   type Lab,
 } from "./labs.js";
-import { handleHttp, handleUpgrade } from "./proxy.js";
+import { handleHttp, handleUpgrade, baseHostForReq } from "./proxy.js";
 import { askCopilot, getAiQuota } from "./ai.js";
 import { runtime } from "./runtime.js";
 
@@ -36,13 +36,13 @@ const app = Fastify({
 await app.register(cookie);
 await app.register(fstatic, { root: path.resolve(import.meta.dirname, "../public") });
 
-const cookieOpts = {
+const cookieOptsFor = (req: any) => ({
   path: "/",
   httpOnly: true,
   sameSite: "lax" as const,
-  domain: `.${config.baseHost}`,
+  domain: `.${baseHostForReq(req)}`,
   maxAge: 12 * 3600,
-};
+});
 
 const me = (req: any): User | null => userFromToken(req.cookies.dvd_sid);
 const guard = (req: any, reply: any, admin = false) => {
@@ -65,18 +65,18 @@ const wrap = (fn: (req: any, reply: any) => unknown) => async (req: any, reply: 
   }
 };
 
-const labUrls = (id: string) => ({
-  sim: `http://sim-${id}.${config.baseHost}:${config.port}`,
-  admin: `http://admin-${id}.${config.baseHost}:${config.port}`,
-  term: `http://term-${id}.${config.baseHost}:${config.port}`,
-  gcs: `http://gcs-${id}.${config.baseHost}:${config.port}/vnc.html?autoconnect=1&resize=scale&path=websockify`,
+const labUrls = (id: string, baseHost: string) => ({
+  sim: `http://sim-${id}.${baseHost}:${config.port}`,
+  admin: `http://admin-${id}.${baseHost}:${config.port}`,
+  term: `http://term-${id}.${baseHost}:${config.port}`,
+  gcs: `http://gcs-${id}.${baseHost}:${config.port}/vnc.html?autoconnect=1&resize=scale&path=websockify`,
 });
 
-const serializeLab = (l: Lab | undefined) =>
+const serializeLab = (l: Lab | undefined, req: any) =>
   l
     ? {
         ...l,
-        urls: labUrls(l.id),
+        urls: labUrls(l.id, baseHostForReq(req)),
         ips: slotIps(l.slot),
         idleDeadline: l.last_seen + config.idleMs,
         hardDeadline: l.started + config.hardCapMs,
@@ -95,7 +95,7 @@ app.post(
     const { username, password, invite, tos } = req.body ?? {};
     const u = register(username, password, invite, !!tos);
     const token = login(username, password, req.ip);
-    reply.setCookie("dvd_sid", token, cookieOpts);
+    reply.setCookie("dvd_sid", token, cookieOptsFor(req));
     return { user: u };
   })
 );
@@ -103,7 +103,7 @@ app.post(
   "/api/login",
   wrap(async (req, reply) => {
     const { username, password } = req.body ?? {};
-    reply.setCookie("dvd_sid", login(username, password, req.ip), cookieOpts);
+    reply.setCookie("dvd_sid", login(username, password, req.ip), cookieOptsFor(req));
     return { user: db.prepare("SELECT id,username,is_admin FROM users WHERE username=?").get(username) };
   })
 );
@@ -111,7 +111,7 @@ app.post(
   "/api/logout",
   wrap(async (req, reply) => {
     if (req.cookies.dvd_sid) logout(req.cookies.dvd_sid);
-    reply.clearCookie("dvd_sid", cookieOpts);
+    reply.clearCookie("dvd_sid", cookieOptsFor(req));
     return { ok: true };
   })
 );
@@ -123,7 +123,7 @@ app.get(
     const l = labForUser(u.id);
     return {
       user: u,
-      lab: serializeLab(l),
+      lab: serializeLab(l, req),
       runtime: { name: runtime.name, supportsWifi: runtime.supportsWifi, maxSlots: config.maxSlots },
       activeSlotCount: activeLabs().length,
       ai: getAiQuota(u.id),
@@ -138,7 +138,7 @@ app.post(
     const u = guard(req, reply);
     if (!u) return;
     const l = startLab(u.id);
-    return { lab: serializeLab(l) };
+    return { lab: serializeLab(l, req) };
   })
 );
 app.post(
